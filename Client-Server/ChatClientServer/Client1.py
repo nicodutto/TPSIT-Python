@@ -1,44 +1,49 @@
 import socket
-import threading as tr
+import threading
 
 # Definisce l'indirizzo IP e la porta del server a cui connettersi
-server_ip = "192.168.1.93"  # Cambia con l'IP corretto del server
-server_port = 12345
-buffer_size = 1024  # Buffer per la ricezione dei dati
+server_ip = "127.0.0.1"  # Cambia in "localhost" se necessario
+server_port = 12346
 server_address = (server_ip, server_port)
+buffer_size = 4092
+messaggio = ""
 
 # Crea un socket UDP
 udp_client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-# Funzione per inviare messaggi al server
-def send_message():
-    while True:
-        message = input("Tu: ").encode()
-        if message.decode() == 'exit':
-            print("Chiusura connessione.")
-            udp_client_socket.close()
-            break
-        # Invia il messaggio al server
-        udp_client_socket.sendto(message, server_address)
+#Provo un associazione in modo che il server sappia che sono il client (altrimenti da un errore in ricezione del client)
+udp_client_socket.sendto("CollegamentoAvvenuto".encode(), server_address)
 
-# Funzione per ricevere messaggi dal server
-def receive_message():
+# Funzione che riceve i messaggi
+def riceviMessaggi():
     while True:
         try:
-            # Riceve il messaggio dal client
-            data, _ = udp_client_socket.recvfrom(buffer_size)
-            print(f"Messaggio ricevuto da {server_address}: {data.decode()}")
-        except OSError:
-            break
+            data, address = udp_client_socket.recvfrom(buffer_size)  # E' BLOCCANTE
+            print(f"Server: {data.decode()}")
+            print("Client: ")
+        except Exception as e:
+            print(f"ErroreRicezione: {e}")
 
-# Crea i thread per inviare e ricevere messaggi
-thread_sender = tr.Thread(target=send_message)
-thread_receiver = tr.Thread(target=receive_message)
+# Funzione che invia i messaggi
+def inviaMessaggi():
+    while True:
+        try:
+            messaggio = input("Client: ")
+            udp_client_socket.sendto(messaggio.encode(), server_address)
+        except Exception as e:
+            print(f"ErroreInvio: {e}")
 
-# Avvia i thread
-thread_sender.start()
-thread_receiver.start()
+# Creo i threads
+thread_ricevitore = threading.Thread(target=riceviMessaggi)
+thread_inviatore = threading.Thread(target=inviaMessaggi)
 
-# Sincronizzazione per la terminazione dei thread
-thread_sender.join()
-thread_receiver.join()
+# Avvio i threads
+thread_ricevitore.start()
+thread_inviatore.start()
+
+# Aspetto che i thread finiscano (questo potrebbe non accadere mai in questo caso)
+thread_ricevitore.join()
+thread_inviatore.join()
+
+# Chiusura del socket
+udp_client_socket.close()

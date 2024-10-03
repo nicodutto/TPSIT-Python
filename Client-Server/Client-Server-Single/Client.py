@@ -19,7 +19,7 @@ def send_message():
             udp_client_socket.close()
             break
         # Invia il messaggio al server
-        udp_client_socket.sendto(message, server_address)
+        udp_client_socket.sendto(message.encode(), server_address)
 
 # Funzione per ricevere messaggi dal server
 def receive_message():
